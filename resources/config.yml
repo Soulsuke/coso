@@ -1,0 +1,35 @@
+:name: COSO
+
+:area:
+  :width: 30
+  :height: 30
+  :spawn_tile:
+    :type: :spawn
+    :color: "#0E68AB"
+  :exit_tile:
+    :type: :exit
+    :color: "#00733E"
+  :explorer:
+    :color: "#D32029"
+    :explored_tile_color: "#FFFFFF"
+  :biome:
+   - :type: :plain
+     :obstacle: false
+     :chance: 60
+     :color: "#EBE7B9"
+   - :type: :swamp
+     :obstacle: true
+     :chance: 30
+     :color: "#A69F9D"
+
+:renderer:
+  :background: "#000000"
+  :map_spacing: 30
+  :tile:
+    :width: 10
+    :height: 10
+  :text:
+    :size: 20
+    :padding: 5
+    :color: "#FFFFFF"
+
