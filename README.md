@@ -1,4 +1,4 @@
-# COSO - the exploring thingy
+# Coso - the exploring thingy
 
 A simple ruby pet project.  
 
