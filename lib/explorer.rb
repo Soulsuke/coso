@@ -81,13 +81,13 @@ class Explorer
     return ret if @status != :exploring
 
     # Save this old info:
-    ret[ :expanded ] = [ @height, @width ]
+    ret[ :expanded ] = [ @map.height, @map.width ]
 
     # Update the explorer's map with the given proximity:
     add_to_map proximity
 
     # Update ret's value:
-    ret[ :expanded ] = ret[ :expanded ] == [ @height, @width ]
+    ret[ :expanded ] = ret[ :expanded ] != [ @map.height, @map.width ]
 
     # Process the proximity data a little:
     3.times do |r|
