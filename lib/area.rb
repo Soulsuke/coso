@@ -18,8 +18,8 @@ along with this program.  If not, see https://www.gnu.org/licenses/gpl-3.0.txt.
 
 
 
-require_relative "explorer.rb"
-require_relative "map.rb"
+require_relative 'explorer'
+require_relative 'map'
 
 
 
@@ -43,12 +43,6 @@ class Area
   # Explorer:
   attr_reader :explorer
 
-  # Width:
-  attr_reader :width
-
-  # Height:
-  attr_reader :height
-
   # Explorer's position:
   attr_reader :explorer_position
 
@@ -61,11 +55,10 @@ class Area
   # Constructor.
   def initialize( data )
     @biome = data[ :biome ]
-    @width = data[ :width ]
-    @height = data[ :height ]
     data.delete :biome
-    @map = Map.new data, biome
-    @explorer = Explorer.new data[ :explorer ], data[ :spawn_tile ]
+    @map = Map.new data, biome: biome
+    @explorer = Explorer.new data: data[ :explorer ],
+      spawn_tile: data[ :spawn_tile ]
     @explorer_position = @map.spawn
   end
 
@@ -80,7 +73,7 @@ class Area
     old_position = @explorer_position.clone
 
     # Move the explorer:
-    data = @explorer.move @map.surrounding_area @explorer_position
+    data = @explorer.move surroundings
 
     # Update the explorer's position:
     2.times do |idx|

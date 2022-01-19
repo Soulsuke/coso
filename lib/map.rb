@@ -18,7 +18,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/gpl-3.0.txt.
 
 
 
-require "matrix"
+require_relative 'tiles_grid'
 
 
 
@@ -39,12 +39,6 @@ class Map
   # Spawn tile coordinates:
   attr_reader :spawn
 
-  # Current width:
-  attr_reader :width
-
-  # Current height:
-  attr_reader :height
-
 
 
   #############################################################################
@@ -52,22 +46,17 @@ class Map
   #############################################################################
 
   # Constructor.
-  def initialize( data, biome = nil )
-    # If no biome has been given, init the explorer's map:
+  def initialize( data, biome: nil )
+    # If no biome has been given, init the explorer's map which stats as a
+    # 1x1 matrix containing the lone cell specified within data:
     if biome.nil? then
-      @tiles = Matrix[ [ data ] ]
-      @width = 1
-      @height = 1
+      @tiles = TilesGrid.new 1, 1, value: data
 
     # Else, create a randomly generated map:
     else
-      @width = data[ :width ]
-      @height = data[ :height ]
-
-      # Set a dummy tiles matrix:
-      @tiles = Matrix[
-        *data[ :height ].times.map { [ nil ] * data[ :width ] }
-      ]
+      # Create an empty matrix:
+      @tiles = TilesGrid.new data[ :height ], data[ :width ],
+        value: nil
 
       # Compose chances data:
       chances_total = biome.map { |b| b[ :chance ] }.sum
@@ -87,9 +76,8 @@ class Map
           # Pick a random tile:
           pick = rand chances_total
           @tiles[ h, w ] = biome[
-            biome_chances.find do |c|
-              c[ :start ] <= pick and c[ :end ] >= pick
-            end[ :idx ]
+            biome_chances
+              .find { |b| b[ :start ] <= pick and b[ :end ] >= pick }[ :idx ]
           ]
         end
       end
@@ -108,35 +96,47 @@ class Map
 
 
 
+  # Returns the map's height.
+  def height
+    return @tiles.height
+  end
+
+
+
+  # Returns the map's width.
+  def width
+    return @tiles.width
+  end
+
+
+
+  # Increase the matrix's dimensions.
+  def add( position )
+    @tiles.add position: position, value: nil
+  end
+
+
+
   # Returns a 3x3 submap of the surroinding to the given coordinates.
   def surrounding_area( coords )
     # Return value container:
-    ret = Matrix[ *3.times.map { [ nil ] * 3 } ]
+    ret = TilesGrid.new 3, 3, value: nil
 
     # Let's create the submap:
-    [ -1, 0, 1 ].each_with_index do |r, ri|
-      [ -1, 0, 1 ].each_with_index do |c, ci|
+    (-1..1).each_with_index do |r, ri|
+      (-1..1).each_with_index do |c, ci|
         row = coords[ 0 ] + r
         col = coords[ 1 ] + c
-        if row < 0 or row >= @height or col < 0 or col >= @width then
-          ret[ ri, ci ] = nil
-        else
-          ret[ ri, ci ] = @tiles[ coords[ 0 ] + r, coords[ 1 ] + c ]
+
+        # Only copy data if we are within the map's bounds:
+        if (0..height-1).include? row and (0..width-1).include? col then
+          ret[ ri, ci ] = @tiles[ row, col ].clone
         end
       end
     end
 
     # Finally, return ret:
     return ret
-  end
-
-
-
-  # Custom tiles updater.
-  def tiles=( tiles )
-    @tiles = tiles
-    @width = @tiles.column_vectors.size
-    @height = @tiles.row_vectors.size
   end
 
 end

@@ -18,7 +18,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/gpl-3.0.txt.
 
 
 
-require_relative "map.rb"
+require_relative 'map'
 
 
 
@@ -57,9 +57,9 @@ class Explorer
   #############################################################################
 
   # Constructor.
-  def initialize( explorer_data, spawn_tile )
-    @color = explorer_data[ :color ]
-    @explored_color = explorer_data[ :explored_tile_color ]
+  def initialize( data:, spawn_tile: )
+    @color = data[ :color ]
+    @explored_color = data[ :explored_tile_color ]
     @map = Map.new spawn_tile.merge( explored: true )
     @position = [ 0, 0 ]
     @status = :exploring
@@ -90,31 +90,27 @@ class Explorer
     ret[ :expanded ] = ret[ :expanded ] != [ @map.height, @map.width ]
 
     # Process the proximity data a little:
-    3.times do |r|
-      3.times do |c|
-        unless proximity[ r, c ].nil? then
-          # Blank diagonal tiles and obstacles:
-          if (r + c) % 2 == 0 or proximity[ r, c ][ :obstacle ] then
-            proximity[ r, c ] = nil
+    proximity.each_row_with_index do |r, ri|
+      r.each_with_index do |t, ci|
+        # Ignore nil tiles:
+        next if t.nil?
 
-          # For each remanining available tile, add in the right explored
-          # value from the map:
-          else
-            proximity[ r, c ] = proximity[ r, c ].merge(
-              {
-                explored: @map
-                  .tiles[ @position[ 0 ] + r - 1, @position[ 1 ] + c - 1 ][
-                    :explored
-                  ]
-              }
-            )
-          end
+        # Blank diagonal tiles and obstacles:
+        if (ri + ci) % 2 == 0 or t[ :obstacle ] then
+          proximity[ ri, ci ] = nil
+
+        # For each remanining available tile, add in the right explored
+        # value from the map:
+        else
+          proximity[ ri, ci ][ :explored ] = @map
+            .tiles[ @position[ 0 ] + ri - 1, @position[ 1 ] + ci - 1 ] \
+              [ :explored ]
         end
       end
     end
 
     # Check if the exit is in proximity, and if so move in there:
-    found_exit = proximity.find_index { |m| !m.nil? and m[ :type ] == :exit }
+    found_exit = proximity.find_index { |t| !t.nil? and t[ :type ] == :exit }
 
     # If we've found it, move on there:
     if !found_exit.nil? then
@@ -124,7 +120,7 @@ class Explorer
     # This only happens at the very first movement attempt:
     elsif @last_movement.nil? then
       # Attempt to find a tile where we can move to:
-      tile = proximity.find_index { |m| !m.nil? }
+      tile = proximity.find_index { |t| !t.nil? }
 
       # If this is true, it means we're already stuck:
       if tile.nil? then
@@ -137,11 +133,8 @@ class Explorer
 
     # If we're moving normally:
     else
-
       # Attempt to find the first unexplored tile:
-      tile = proximity.find_index do |m|
-        !m.nil? and m[ :explored ] == false
-      end
+      tile = proximity.find_index { |t| !t.nil? and t[ :explored ] == false }
 
       # If we've found one, move in there:
       if !tile.nil? then
@@ -155,7 +148,7 @@ class Explorer
         proximity[ *back_coords ] = nil
 
         # Attempt to move forward without backtracking:
-        tile = proximity.find_index { |m| !m.nil? }
+        tile = proximity.find_index { |t| !t.nil? }
 
         # If we didn't find anything, we gotta go back:
         if tile.nil? then
@@ -185,9 +178,22 @@ class Explorer
   # Updates the map using the given proximity data.
   def add_to_map( proximity )
     # Process every row:
-    proximity.row_vectors.each_with_index do |row, row_idx|
+    proximity.each_row_with_index do |row, row_idx|
       # Map row to update:
       map_row = @position[ 0 ] + row_idx - 1
+
+      # Check if we have to add in a new top row:
+      if map_row < 0 then
+        @map.add :top
+
+        # Also update the current position to keep it within the bounds:
+        @position[ 0 ] += 1
+        map_row += 1
+
+      # Check if we have to add a new bottom row:
+      elsif map_row == @map.height then
+        @map.add :bottom
+      end
 
       # Process every column:
       row.each_with_index do |col, col_idx|
@@ -196,29 +202,9 @@ class Explorer
         # Map column to update:
         map_col = @position[ 1 ] + col_idx - 1
 
-        # Check if we have to add in a new top row:
-        if map_row < 0 then
-          @map.tiles = Matrix.rows(
-            @map.tiles.to_a.insert( 0, [ nil ] * @map.width )
-          )
-
-          # Also update the current position to keep it within the bounds:
-          @position[ 0 ] += 1
-          map_row += 1
-
-        # Check if we have to add a new bottom row:
-        elsif map_row == @map.height then
-          @map.tiles = Matrix.rows(
-            @map.tiles.to_a << [ nil ] * @map.width
-          )
-        end
-
         # Check if we have to add a new left column:
         if map_col < 0 then
-          # Add in the new column:
-          @map.tiles = Matrix.columns(
-            @map.tiles.column_vectors.insert( 0, [ nil ] * @map.height )
-          )
+          @map.add :left
 
           # Also update the current position to keep it within the bounds:
           @position[ 1 ] += 1
@@ -226,14 +212,13 @@ class Explorer
 
         # Or if we have to add a new right column:
         elsif map_col == @map.width then
-          @map.tiles = Matrix.columns(
-             @map.tiles.column_vectors << [ nil ] * @map.height
-          )
+          @map.add :right
         end
 
         # Add in the tile only if we should:
         if !proximity[ row_idx, col_idx ].nil? and
-           @map.tiles[ map_row, map_col ].nil? then
+           @map.tiles[ map_row, map_col ].nil? \
+        then
           @map.tiles[ map_row, map_col ] = proximity[ row_idx, col_idx ]
             .merge( { explored: false } )
         end

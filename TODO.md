@@ -8,4 +8,6 @@ TODO:
  - change explored true/false to explored datetime, and pick the one with the
    min time when moving  
  - make the explorer smarter: use a compass to find unexplored tiles  
+ - implement a real maze solving solution, aiming for a dustom algorithm with
+   a decent performance  
 

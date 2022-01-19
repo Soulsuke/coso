@@ -18,7 +18,7 @@ along with this program.  If not, see https://www.gnu.org/licenses/gpl-3.0.txt.
 
 
 
-require "ruby2d"
+require 'ruby2d'
 
 
 
@@ -78,8 +78,8 @@ class Renderer
     settings.delete :background
 
     # Area dimensions:
-    @area_width = area.width * settings[ :tile ][ :width ]
-    @area_height = area.height * settings[ :tile ][ :height ]
+    @area_width = area.map.width * settings[ :tile ][ :width ]
+    @area_height = area.map.height * settings[ :tile ][ :height ]
 
     # Offsets:
     @explorer_map_offset = @area_width + settings[ :map_spacing ]
@@ -96,13 +96,13 @@ class Renderer
   # Renders the initial frame.
   def start
     # Add in some texts:
-    Text.new "Area map:",
+    Text.new 'Area map:',
       y: @settings[ :tile ][ :padding ],
       x: 0,
       size: @settings[ :tile ][ :size ],
       color: @settings[ :text ][ :color ]
     
-    Text.new "Explorer's map:",
+    Text.new 'Explorer\'s map:',
       y: @settings[ :tile ][ :padding ],
       x: @explorer_map_offset,
       size: @settings[ :tile ][ :size ],
@@ -132,7 +132,7 @@ class Renderer
     # Else, we just gotta update the explorers proximity:
     else
       # 3 rows proximity:
-      [ -1, 0, 1 ].each do |r|
+      (-1..1).each do |r|
         # Row to use:
         row = @area.explorer.position[ 0 ] + r
 
@@ -140,7 +140,7 @@ class Renderer
         next if row < 0 or row == @area.explorer.map.height
 
         # 3 columns proximity:
-        [ -1, 0, 1 ].each do |c|
+        (-1..1).each do |c|
           # Column to use:
           col = @area.explorer.position[ 1 ] + c
 
@@ -148,7 +148,7 @@ class Renderer
           next if @area.explorer.map.tiles[ row, col ].nil?
 
           # Draw the tile:
-          draw_tile [ row, col ], :explorer
+          draw_tile coords: [ row, col ], type: :explorer
         end
       end
     end
@@ -168,18 +168,18 @@ class Renderer
   #############################################################################
 
   # Draws a single tile.
-  def draw_tile( coord, type )
+  def draw_tile( coords:, type: )
     # X offset to use:
     offset_x = 0
 
     # If we're processing an area map tile:
     if :area == type then
       # If the explorer is there, use its color::
-      if @area.explorer_position == coord then
+      if @area.explorer_position == coords then
         color = @area.explorer.color
       # Else use the tile's one:
       else
-        color = @area.map.tiles[ *coord ][ :color ]
+        color = @area.map.tiles[ *coords ][ :color ]
       end
 
     # If we're processing an explorer map tile:
@@ -188,28 +188,28 @@ class Renderer
       offset_x = @explorer_map_offset
 
       # If it's an empty tile, we gotta blank it:
-      if @area.explorer.map.tiles[ *coord ].nil? then
+      if @area.explorer.map.tiles[ *coords ].nil? then
         color = @background
 
       # Else, render it accordingly:
       else
         # If the explorer is there, use its color:
-        if @area.explorer.position == coord then
+        if @area.explorer.position == coords then
           color = @area.explorer.color
         # If its an explored tile, use the adeguate color:
-        elsif @area.explorer.map.tiles[ *coord ][ :explored ] then
+        elsif @area.explorer.map.tiles[ *coords ][ :explored ] then
           color = @area.explorer.explored_color
         # # Else use the tile's one:
         else
-          color = @area.explorer.map.tiles[ *coord ][ :color ]
+          color = @area.explorer.map.tiles[ *coords ][ :color ]
         end
       end
     end
 
     # Add in the tile:
     Rectangle.new color: color,
-      y: @settings[ :tile ][ :height ] * coord[ 0 ] + @vertical_map_offset,
-      x: @settings[ :tile ][ :width ] * coord[ 1 ] + offset_x,
+      y: @settings[ :tile ][ :height ] * coords[ 0 ] + @vertical_map_offset,
+      x: @settings[ :tile ][ :width ] * coords[ 1 ] + offset_x,
       width: @settings[ :tile ][ :width ],
       height: @settings[ :tile ][ :height ] 
   end
@@ -224,7 +224,7 @@ class Renderer
     # Draw the initial map:
     map.height.times do |row|
       map.width.times do |col|
-        draw_tile [ row, col ], type
+        draw_tile coords: [ row, col ], type: type
       end
     end   
   end
@@ -236,7 +236,7 @@ class Renderer
     # Update all the given coordinates:
     coords.each do |coord|
       # Draw the single tile:
-      draw_tile coord, type
+      draw_tile coords: coord, type: type
     end
   end
 
